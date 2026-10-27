@@ -31,6 +31,8 @@ describe('BullMQJobsBackend', function () {
     ['lockDuration', -1],
     ['stalledInterval', 1.5],
     ['maxStalledCount', -1],
+    ['timezone', 'Not/AZone'],
+    ['timezone', 42],
     ['connection', { port: 0 }],
     ['connection', { port: '6379' }],
     ['connection', { host: '' }],
@@ -55,12 +57,9 @@ describe('BullMQJobsBackend', function () {
     );
   });
 
-  it('throws on a recurring schedule before start', function () {
-    assert.throws(
-      () =>
-        new BullMQJobsBackend().scheduleRecurring(envelope, {
-          cron: '* * * * *',
-        }),
+  it('throws on a recurring schedule before start', async function () {
+    await assert.rejects(
+      async () => new BullMQJobsBackend().scheduleRecurring(envelope, { cron: '* * * * *' }),
       /before the jobs backend is started/,
     );
   });

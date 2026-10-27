@@ -101,6 +101,7 @@ describe('jobs-service wrapper', function () {
           tls: false,
         },
         prefix: 'ghost',
+        timezone: null,
         concurrency: 3,
         lockDuration: 30000,
         stalledInterval: 30000,
