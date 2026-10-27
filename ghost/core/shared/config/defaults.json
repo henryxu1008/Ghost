@@ -68,6 +68,21 @@
       "active": "InMemoryJobsBackend",
       "InMemoryJobsBackend": {
         "concurrency": 3
+      },
+      "BullMQJobsBackend": {
+        "connection": {
+          "host": "127.0.0.1",
+          "port": 6379,
+          "username": null,
+          "password": null,
+          "db": 0,
+          "tls": false
+        },
+        "prefix": "ghost",
+        "concurrency": 3,
+        "lockDuration": 30000,
+        "stalledInterval": 30000,
+        "maxStalledCount": 1
       }
     }
   },
