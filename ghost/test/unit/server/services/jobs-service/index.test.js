@@ -106,6 +106,10 @@ describe('jobs-service wrapper', function () {
         lockDuration: 30000,
         stalledInterval: 30000,
         maxStalledCount: 1,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 30000 },
+        retention: { completedAgeSeconds: 86400, failedAgeSeconds: 604800, maxCount: 10000 },
+        enqueueTimeoutMs: 2000,
       },
     });
   });

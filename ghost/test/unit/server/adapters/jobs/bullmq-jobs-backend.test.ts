@@ -32,12 +32,20 @@ describe('BullMQJobsBackend', function () {
     ['stalledInterval', 1.5],
     ['maxStalledCount', -1],
     ['timezone', 'Not/AZone'],
+    ['attempts', 0],
+    ['backoff', { type: 'linear', delay: 10 }],
+    ['backoff', { type: 'fixed', delay: -1 }],
+    ['retention', { completedAgeSeconds: 0 }],
+    ['retention', { failedAgeSeconds: 1.5 }],
+    ['retention', { maxCount: -1 }],
     ['timezone', 42],
     ['connection', { port: 0 }],
     ['connection', { port: '6379' }],
     ['connection', { host: '' }],
     ['connection', { db: -1 }],
     ['connection', { tls: 'yes' }],
+    ['enqueueTimeoutMs', 0],
+    ['enqueueTimeoutMs', '2000'],
   ] as const) {
     it(`rejects an invalid ${field} config ${JSON.stringify(value)}`, function () {
       assert.throws(

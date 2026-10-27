@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 import { Queue } from 'bullmq';
 import type { JobEnvelope, DispatchEnvelope } from '@tryghost/adapter-base-jobs';
 import { runJobsBackendContractTests } from '@tryghost/adapter-base-jobs/contract-test-suite';
+import { JobsService } from '../../../../core/server/services/jobs-service/jobs-service';
+import { Job } from '../../../../core/server/services/jobs-service/job';
 import BullMQJobsBackend from '../../../../core/server/adapters/jobs/BullMQJobsBackend';
 
 const sinon = require('sinon');
@@ -239,7 +241,7 @@ describe.skipIf(!redisUp)('Integration: BullMQJobsBackend', function () {
 
   it('logs a rejected processor and leaves the job in the failed set', async function () {
     const errorStub = sinon.stub(logging, 'error');
-    const backend = makeBackend();
+    const backend = makeBackend({ attempts: 1 });
     const attempted = Promise.withResolvers<void>();
     await backend.start({
       processor: async () => {
@@ -305,6 +307,73 @@ describe.skipIf(!redisUp)('Integration: BullMQJobsBackend', function () {
       await backend.shutdown({ timeoutMs: 1000 });
 
       assert.equal(stored?.tz, Intl.DateTimeFormat().resolvedOptions().timeZone);
+    });
+  });
+
+  describe('retries and retention', function () {
+    const retry = { attempts: 3, backoff: { type: 'fixed', delay: 10 } };
+
+    it('retries a rejected delivery up to attempts, then leaves it failed', async function () {
+      sinon.stub(logging, 'error');
+      const backend = makeBackend(retry);
+      let calls = 0;
+      await backend.start({
+        processor: async () => {
+          calls += 1;
+          throw new Error('boom');
+        },
+      });
+      await backend.enqueue('retry-1', dispatch(job));
+
+      const queue = inspect(prefixes[prefixes.length - 1]!);
+      await waitFor(async () => (await (await queue.getJob('retry-1'))?.getState()) === 'failed');
+      const stored = await queue.getJob('retry-1');
+      await queue.close();
+      await backend.shutdown({ timeoutMs: 1000 });
+
+      assert.equal(calls, 3);
+      assert.equal(stored?.attemptsMade, 3);
+    });
+
+    it('retries a delivery of an unknown job type through the jobs service', async function () {
+      class UnknownJob extends Job {
+        static type = 'unknown-job';
+      }
+      sinon.stub(logging, 'error');
+      const backend = makeBackend({ ...retry, attempts: 2 });
+      const silent = { error() {}, info() {}, warn() {} };
+      const service = new JobsService({ backend, logging: silent });
+      await service.start();
+      await service.dispatch(new UnknownJob());
+
+      const queue = inspect(prefixes[prefixes.length - 1]!);
+      await waitFor(async () => (await queue.getJobCountByTypes('failed')) === 1);
+      const [failed] = await queue.getFailed();
+      await queue.close();
+      await service.shutdown({ timeoutMs: 1000 });
+
+      assert.equal(failed?.attemptsMade, 2);
+      assert.match(String(failed?.failedReason), /No handler registered/);
+    });
+
+    it('applies the retention config to stored jobs', async function () {
+      const backend = makeBackend({
+        retention: { completedAgeSeconds: 60, failedAgeSeconds: 120, maxCount: 50 },
+      });
+      const done = Promise.withResolvers<void>();
+      await backend.start({
+        processor: async () => done.resolve(),
+      });
+      await backend.enqueue('keep-1', dispatch(job));
+      await done.promise;
+
+      const queue = inspect(prefixes[prefixes.length - 1]!);
+      const stored = await queue.getJob('keep-1');
+      await queue.close();
+      await backend.shutdown({ timeoutMs: 1000 });
+
+      assert.deepEqual(stored?.opts.removeOnComplete, { age: 60, count: 50 });
+      assert.deepEqual(stored?.opts.removeOnFail, { age: 120, count: 50 });
     });
   });
 
