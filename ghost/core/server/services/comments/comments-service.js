@@ -1,8 +1,6 @@
 const tpl = require('@tryghost/tpl');
 const errors = require('@tryghost/errors');
-const { MemberCommentEvent } = require('../../../shared/events');
-const DomainEvents = require('@tryghost/domain-events');
-const { byNQL } = require('../../models/base/plugins/bulk-filters');
+const { moment } = require('../../../kernel/clock');
 
 const messages = {
   commentNotFound: 'Comment could not be found',
@@ -100,6 +98,11 @@ function getSafeWriteOptions(options = {}) {
   };
 }
 
+// Timestamps written by this service come from the shared clock.
+function now() {
+  return moment().toDate();
+}
+
 class CommentsService {
   constructor({
     config,
@@ -111,6 +114,11 @@ class CommentsService {
     urlService,
     urlUtils,
     contentGating,
+    DomainEvents,
+    MemberCommentEvent,
+    byNQL,
+    t,
+    createUnsubscribeUrl,
   }) {
     /** @private */
     this.models = models;
@@ -124,6 +132,15 @@ class CommentsService {
     /** @private */
     this.urlService = urlService;
 
+    /** @private */
+    this.DomainEvents = DomainEvents;
+
+    /** @private */
+    this.MemberCommentEvent = MemberCommentEvent;
+
+    /** @private */
+    this.byNQL = byNQL;
+
     const Emails = require('./comments-service-emails');
     /** @private */
     this.emails = new Emails({
@@ -135,6 +152,8 @@ class CommentsService {
       settingsHelpers,
       urlService,
       urlUtils,
+      t,
+      createUnsubscribeUrl,
     });
   }
 
@@ -662,7 +681,7 @@ class CommentsService {
         }
       }
 
-      editData.pinned_at = data.pinned ? existingComment.get('pinned_at') || new Date() : null;
+      editData.pinned_at = data.pinned ? existingComment.get('pinned_at') || now() : null;
     }
 
     return await this.models.Comment.edit(editData, {
@@ -815,8 +834,8 @@ class CommentsService {
       await this.sendNewCommentNotifications(model);
     }
 
-    DomainEvents.dispatch(
-      MemberCommentEvent.create({
+    this.DomainEvents.dispatch(
+      this.MemberCommentEvent.create({
         memberId: member,
         postId: post,
         commentId: model.id,
@@ -895,8 +914,8 @@ class CommentsService {
       await this.sendNewCommentNotifications(model);
     }
 
-    DomainEvents.dispatch(
-      MemberCommentEvent.create({
+    this.DomainEvents.dispatch(
+      this.MemberCommentEvent.create({
         memberId: member,
         postId: parentComment.get('post_id'),
         commentId: model.id,
@@ -969,7 +988,7 @@ class CommentsService {
     const model = await this.models.Comment.edit(
       {
         html: comment,
-        edited_at: new Date(),
+        edited_at: now(),
       },
       {
         id,
@@ -989,7 +1008,7 @@ class CommentsService {
   async bulkUpdateStatus(filter, status) {
     await this.models.Comment.bulkEditWhere({
       data: { status },
-      where: byNQL(filter),
+      where: this.byNQL(filter),
     });
   }
 
