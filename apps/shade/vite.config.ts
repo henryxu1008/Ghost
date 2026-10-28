@@ -67,6 +67,7 @@ export default (function viteConfig() {
     test: {
       globals: true, // required for @testing-library/jest-dom extensions
       environment: 'jsdom',
+      setupFiles: ['@internal/cfg-vitest/dom-assertion-messages'],
       include: ['./test/unit/**/*'],
       exclude: ['./test/unit/utils/test-utils.tsx'],
       testTimeout: process.env.TIMEOUT ? parseInt(process.env.TIMEOUT) : 10000,

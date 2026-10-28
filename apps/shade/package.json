@@ -192,6 +192,7 @@
   },
   "devDependencies": {
     "@internal/cfg-eslint-react": "workspace:*",
+    "@internal/cfg-vitest": "workspace:*",
     "@storybook/addon-docs": "catalog:",
     "@storybook/addon-links": "catalog:",
     "@storybook/react-vite": "catalog:",

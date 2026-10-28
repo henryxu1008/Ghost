@@ -73,6 +73,13 @@ snapshot is not proof that the output is correct. Review every changed snapshot
 before committing it and add focused assertions for behaviour that should be
 obvious to a reader.
 
+A jsdom suite that compares DOM nodes with Node's `assert` should load
+`@internal/cfg-vitest/dom-assertion-messages` in its Vitest `setupFiles`, as
+Shade and Admin do. Without it, a failing comparison such as
+`assert.equal(element, null)` inspects React's whole component tree and can
+crash the worker with "Worker exited unexpectedly" instead of reporting the
+failure.
+
 ## Coverage
 
 Coverage helps find code that a test never exercises; it does not replace

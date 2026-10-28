@@ -5,11 +5,13 @@
   "description": "Shared Vitest config for internal Ghost packages",
   "license": "MIT",
   "files": [
-    "index.mjs"
+    "index.mjs",
+    "dom-assertion-messages.mjs"
   ],
   "type": "module",
   "exports": {
-    ".": "./index.mjs"
+    ".": "./index.mjs",
+    "./dom-assertion-messages": "./dom-assertion-messages.mjs"
   },
   "dependencies": {
     "vitest": "catalog:"

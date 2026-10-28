@@ -149,7 +149,7 @@ export default defineConfig(({ command, mode }) => ({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./test-utils/setup.ts'],
+    setupFiles: ['@internal/cfg-vitest/dom-assertion-messages', './test-utils/setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'test-utils/**/*.test.ts'],
     // Acceptance and component tests run in a real browser via
     // vitest.acceptance.config.ts
