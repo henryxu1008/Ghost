@@ -9,6 +9,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
+  FieldTitle,
   MultiSelectCombobox,
   Switch,
 } from '@tryghost/shade/components';
@@ -17,20 +18,18 @@ import type { MemberCustomField } from '@tryghost/admin-x-framework/api/member-c
 import type { Tier } from '@tryghost/admin-x-framework/api/tiers';
 import { type CollectFormState, tierChoiceOf } from './collect-form';
 
-/** A setting under the switch: label on the left, a fixed-width control on the right. */
+/**
+ * A setting under the switch: its name on the left, a fixed-width control on the right. The
+ * control carries the name itself, as a label pointing at a dropdown opens it when clicked, and
+ * the rows sit so close that clicking away from one dropdown would open the next.
+ */
 export const SubRow: React.FC<{
   label: string;
-  htmlFor?: string;
   error?: string;
   children: React.ReactNode;
-}> = ({ label, htmlFor, error, children }) => (
+}> = ({ label, error, children }) => (
   <Field data-invalid={Boolean(error) || undefined} orientation="horizontal">
-    <FieldLabel
-      className="h-(--control-height) shrink-0 items-center font-normal"
-      htmlFor={htmlFor}
-    >
-      {label}
-    </FieldLabel>
+    <FieldTitle className="h-(--control-height) shrink-0 font-normal">{label}</FieldTitle>
     <FieldContent className="w-[200px] flex-none">
       {children}
       {error && <FieldError>{error}</FieldError>}
@@ -62,7 +61,9 @@ export const MultiPicker: React.FC<{
         ? `${values.length} unavailable`
         : empty);
   return (
-    <Combobox open={open} onOpenChange={setOpen}>
+    // Modal, like a select, so clicking away only closes it. The rows sit close together, and the
+    // click would otherwise go on to whatever it lands on, such as switching a part off.
+    <Combobox open={open} modal onOpenChange={setOpen}>
       <ComboboxTrigger aria-invalid={invalid || undefined} aria-label={label} id={id}>
         <ComboboxValue placeholder={!values.length}>{shown}</ComboboxValue>
       </ComboboxTrigger>
@@ -81,7 +82,6 @@ export const MultiPicker: React.FC<{
 
 /** The custom field a collected value is saved into, of the one type that can hold it. */
 export const Destination: React.FC<{
-  id: string;
   label: string;
   type: MemberCustomField['type'];
   fields: MemberCustomField[];
@@ -93,8 +93,8 @@ export const Destination: React.FC<{
   value: string | null;
   error?: string;
   onChange: (key: string) => void;
-}> = ({ id, label, type, fields, chosen, value, error, onChange }) => (
-  <SubRow error={error} htmlFor={id} label={label}>
+}> = ({ label, type, fields, chosen, value, error, onChange }) => (
+  <SubRow error={error} label={label}>
     <CustomFieldPicker
       // Offered without asking about the custom fields flag or host limit. Checkout collection
       // is released with custom fields, and it needs Stripe, which a host only lets a site
@@ -108,7 +108,6 @@ export const Destination: React.FC<{
           field.key === value ||
           (field.type === type && field.status === 'active' && !chosen.includes(field.key)),
       )}
-      id={id}
       invalid={Boolean(error)}
       label={label}
       value={value}

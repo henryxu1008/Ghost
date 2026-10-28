@@ -108,6 +108,9 @@ export function CustomFieldPicker({
   return (
     <Combobox
       open={open}
+      // Modal, like a select, so clicking away only closes it rather than also acting on
+      // whatever the click lands on.
+      modal
       onOpenChange={(next) => {
         // Clicking away mid-create abandons it, same as Escape below.
         if (next) {
